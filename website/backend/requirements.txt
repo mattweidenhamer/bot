@@ -1,5 +1,0 @@
-Django==4.1.7
-djangorestframework==3.14.0
-Requests==2.30.0
-social_auth_app_django==5.2.0
-social_auth_core==4.4.1
