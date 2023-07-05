@@ -70,6 +70,7 @@ module.exports = {
         `Successfully loaded voice state in channel ${interaction.member.voice.channel.name}`
       );
     });
+    // TODO generate new IDs for each connection, instead of using user snowflakes, since multiple users may configure the same user and have it open at the same time
     connection.receiver.speaking.on("end", (userId) => {
       //TODO this may be beyond the scope of the function by the time it's all done.
       if (interaction.client.actorWebSockets.has(userId)) {
