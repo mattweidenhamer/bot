@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, PermissionsBitField } = require("discord.js");
 const { getVoiceConnection } = require("@discordjs/voice");
 
 module.exports = {
@@ -14,9 +14,9 @@ module.exports = {
     if (
       !interaction.member.roles.cache.some(
         (role) => role.name === "Puppeteer"
-      ) ||
+      ) &&
       !interaction.member.permissions.has(
-        PermissionsBitField.FLAGS.ADMINISTRATOR
+        PermissionsBitField.Flags.Administrator
       )
     )
       return interaction.reply(

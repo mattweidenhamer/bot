@@ -1,4 +1,8 @@
-const { SlashCommandBuilder, channelMention } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  channelMention,
+  PermissionsBitField,
+} = require("discord.js");
 const {
   entersState,
   joinVoiceChannel,
@@ -15,12 +19,17 @@ module.exports = {
     if (!interaction.guild)
       return interaction.reply(":x:: You can't use this command in DMs!");
     // If the user does not have the Puppeteer role, return and send a message
+    console.log(
+      interaction.member.permissions.has(
+        PermissionsBitField.Flags.Administrator
+      )
+    );
     if (
       !interaction.member.roles.cache.some(
         (role) => role.name === "Puppeteer"
-      ) ||
+      ) &&
       !interaction.member.permissions.has(
-        PermissionsBitField.FLAGS.ADMINISTRATOR
+        PermissionsBitField.Flags.Administrator
       )
     )
       return interaction.reply(

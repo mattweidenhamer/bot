@@ -33,7 +33,7 @@ const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 (async () => {
   try {
     console.log(
-      `Started refreshing ${commands.length} application (/) commands.`
+      `Started reloading ${commands.length} application (/) commands.`
     );
 
     // The put method is used to fully refresh all commands for the application itself.
