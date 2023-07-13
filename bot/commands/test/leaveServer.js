@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, PermissionsBitField } = require("discord.js");
 
 module.exports = {
   cooldown: 5,
@@ -12,7 +12,9 @@ module.exports = {
       !interaction.member.roles.cache.some(
         (role) => role.name === "Puppeteer"
       ) ||
-      !interaction.member.permissions.has("ADMINISTRATOR")
+      !interaction.member.permissions.has(
+        PermissionsBitField.FLAGS.ADMINISTRATOR
+      )
     )
       return interaction.reply(
         ":x:: You need to have the Puppeteer role or be an administrator to use this command!"
