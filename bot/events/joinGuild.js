@@ -3,13 +3,16 @@ const { Events } = require("discord.js");
 module.exports = {
   name: Events.GuildCreate,
   execute(guild) {
+    owner = guild.resolve(guild.ownerID);
     console.log(
       "Joined new guild " +
         guild.name +
         " (ID: " +
         guild.id +
-        ") owned by " +
-        guild.owner.user.tag +
+        ") owned by snowflake " +
+        guild.ownerID +
+        " (username " +
+        owner.user.username +
         " with " +
         guild.memberCount +
         " members."
