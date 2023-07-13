@@ -3,7 +3,7 @@ const { Events } = require("discord.js");
 module.exports = {
   name: Events.GuildCreate,
   execute(guild) {
-    owner = guild.resolve(guild.ownerID);
+    owner = guild.members.resolve(guild.ownerID);
     console.log(
       "Joined new guild " +
         guild.name +
