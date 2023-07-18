@@ -64,11 +64,7 @@ const http = require("http");
 // };
 
 const createWebSocketServer = (port, discordClient) => {
-  const options = {
-    key: fs.readFileSync("private-key.pem"),
-    cert: fs.readFileSync("public-cert.pem"),
-  };
-  const server = https.createServer(options);
+  const server = http.createServer();
   const ws = new WebSocket.WebSocketServer({ server });
 
   ws.on("error", console.error);
