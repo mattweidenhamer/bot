@@ -1,9 +1,11 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const https = require("https");
 const http = require("http");
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
 const { DISCORD_BOT_TOKEN } = require("./config.json");
 const { createWebSocketServer } = require("./websocket/createWebSocket");
+const WebSocket = require("ws");
 
 // Create a new client instance
 const client = new Client({
@@ -121,8 +123,50 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-//Set up websocket
-const websocket = createWebSocketServer("8080", client);
+// //Set up websocket
+// // const options = {
+// //   key: fs.readFileSync("private-key.pem"),
+// //   cert: fs.readFileSync("public-cert.pem"),
+// // };
+// const server = http.createServer();
+// const ws = new WebSocket.WebSocketServer();
+
+// ws.on("error", console.error);
+// ws.on("connection", function connection(socket) {
+//   console.log("New connection to websocket.");
+//   socket.on("message", (data) => {
+//     console.log("Received message from websocket.");
+//     const parsedData = JSON.parse(data);
+//     if (parsedData.type === "ACTOR") {
+//       console.log("Actor specifier received.");
+//       const actorId = parsedData.actorId;
+//       if (discordClient.actorWebSockets.has(actorId)) {
+//         console.log("Actor already has a websocket. Closing old socket.");
+//         const oldWs = discordClient.actorWebSockets.get(actorId);
+//         oldWs.send("CLOSE");
+//         oldWs.close();
+//       }
+//       discordClient.actorWebSockets.set(actorId, socket);
+//       console.log("Actor websocket set.");
+//     }
+//   });
+//   socket.on("close", function close() {
+//     console.log("Closing and cleaning up websocket.");
+//     const actorId = discordClient.actorWebSockets.findKey((websocket) => {
+//       return websocket === socket;
+//     });
+//     if (actorId) {
+//       discordClient.actorWebSockets.delete(actorId);
+//     } else {
+//       console.warn("Couldn't find actorId for websocket.");
+//     }
+//   });
+// });
+// server.listen("8080", () => {
+//   console.log("Websocket server listening on port 8080.");
+// });
+createWebSocketServer(8080, client);
+
 console.log("Websocket created.");
 
 // Log in to Discord with your client's token

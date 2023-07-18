@@ -1,4 +1,6 @@
 const WebSocket = require("ws");
+const fs = require("fs");
+const https = require("https");
 const http = require("http");
 
 // const newConnection = (ws, discordClient) => {
@@ -62,7 +64,12 @@ const http = require("http");
 // };
 
 const createWebSocketServer = (port, discordClient) => {
-  const ws = new WebSocket.WebSocketServer({ port });
+  const options = {
+    key: fs.readFileSync("private-key.pem"),
+    cert: fs.readFileSync("public-cert.pem"),
+  };
+  const server = https.createServer(options);
+  const ws = new WebSocket.WebSocketServer({ server });
 
   ws.on("error", console.error);
   ws.on("connection", function connection(socket) {
@@ -83,36 +90,39 @@ const createWebSocketServer = (port, discordClient) => {
         console.log("Actor websocket set.");
       }
     });
-  });
-  ws.on("close", function close() {
-    console.log("Closing and cleaning up websocket.");
-    const actorId = discordClient.actorWebSockets.findKey((websocket) => {
-      return websocket === socket;
-    });
-    if (actorId) {
-      discordClient.actorWebSockets.delete(actorId);
-    } else {
-      console.warn("Couldn't find actorId for websocket.");
-    }
-  });
-  ws.on("message", function receiveMessage(data) {
-    console.log("Received message from websocket.");
-    const parsedData = JSON.parse(data);
-    console.log(parsedData);
-    if (parsedData.type === "ACTOR") {
-      console.log("Actor message received.");
-      const actorId = parsedData.actorId;
-      if (discordClient.actorWebSockets.has(actorId)) {
-        console.log("Actor already has a websocket. Closing old socket.");
-        const oldWs = discordClient.actorWebSockets.get(actorId);
-        oldWs.send("CLOSE");
-        oldWs.close();
+    socket.on("close", function close() {
+      console.log("Closing and cleaning up websocket.");
+      const actorId = discordClient.actorWebSockets.findKey((websocket) => {
+        return websocket === socket;
+      });
+      if (actorId) {
+        discordClient.actorWebSockets.delete(actorId);
+      } else {
+        console.warn("Couldn't find actorId for websocket.");
       }
-      discordClient.actorWebSockets.set(actorId, ws);
-      discordClient.waitingWebSockets.delete(ws);
-      console.log("Actor websocket set.");
-    }
+    });
   });
+  server.listen(port);
+
+  // ws.on("message", function receiveMessage(data) {
+  //   console.log("Received message from websocket.");
+  //   const parsedData = JSON.parse(data);
+  //   console.log(parsedData);
+  //   if (parsedData.type === "ACTOR") {
+  //     console.log("Actor message received.");
+  //     const actorId = parsedData.actorId;
+  //     if (discordClient.actorWebSockets.has(actorId)) {
+  //       console.log("Actor already has a websocket. Closing old socket.");
+  //       const oldWs = discordClient.actorWebSockets.get(actorId);
+  //       oldWs.send("CLOSE");
+  //       oldWs.close();
+  //     }
+  //     discordClient.actorWebSockets.set(actorId, ws);
+  //     discordClient.waitingWebSockets.delete(ws);
+  //     console.log("Actor websocket set.");
+  //   }
+  // });
+
   return ws;
 };
 

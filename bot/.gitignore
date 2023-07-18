@@ -275,3 +275,4 @@ dist
 
 secrets/
 practice/
+*.pem
