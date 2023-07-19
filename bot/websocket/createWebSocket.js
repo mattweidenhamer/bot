@@ -2,6 +2,7 @@ const WebSocket = require("ws");
 const fs = require("fs");
 const https = require("https");
 const http = require("http");
+const winston = require("winston");
 
 // const newConnection = (ws, discordClient) => {
 //   return () => {
@@ -67,6 +68,7 @@ const createWebSocketServer = (port, discordClient) => {
   // Normal unseured version
   //const server = http.createServer();
   // Encrypted wss version
+  const logger = discordClient.logger;
   const server = https.createServer({
     cert: fs.readFileSync("public-cert.pem"),
     key: fs.readFileSync("private-key.pem"),
@@ -75,36 +77,38 @@ const createWebSocketServer = (port, discordClient) => {
 
   ws.on("error", console.error);
   ws.on("connection", function connection(socket) {
-    console.log("New connection to websocket.");
+    logger.info("New connection to websocket.");
     socket.on("message", (data) => {
-      console.log("Received message from websocket.");
+      logger.debug("Received message from websocket.");
       const parsedData = JSON.parse(data);
       if (parsedData.type === "ACTOR") {
-        console.log("Actor specifier received.");
+        logger.debug("Actor specifier received.");
         const actorId = parsedData.actorId;
         if (discordClient.actorWebSockets.has(actorId)) {
-          console.log("Actor already has a websocket. Closing old socket.");
+          logger.info("Actor already has a websocket. Closing old socket.");
           const oldWs = discordClient.actorWebSockets.get(actorId);
           oldWs.send("CLOSE");
           oldWs.close();
         }
         discordClient.actorWebSockets.set(actorId, socket);
-        console.log("Actor websocket set.");
+        logger.info(`Websocket for ID ${actorId} set.`);
       }
     });
     socket.on("close", function close() {
-      console.log("Closing and cleaning up websocket.");
+      logger.info("Closing and cleaning up websocket.");
       const actorId = discordClient.actorWebSockets.findKey((websocket) => {
         return websocket === socket;
       });
       if (actorId) {
         discordClient.actorWebSockets.delete(actorId);
+        logger.debug(`Websocket Key for ID ${actorId} deleted.`);
       } else {
-        console.warn("Couldn't find actorId for websocket.");
+        logger.warn(`Couldn't find actorId to remove websocket.`);
       }
     });
   });
   server.listen(port);
+  logger.info(`Websocket server listening on port ${port}.`);
 
   // ws.on("message", function receiveMessage(data) {
   //   console.log("Received message from websocket.");

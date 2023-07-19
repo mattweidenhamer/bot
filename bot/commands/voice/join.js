@@ -15,15 +15,12 @@ module.exports = {
     .setName("join")
     .setDescription("Joins the voice channel"),
   async execute(interaction) {
+    const logger = interaction.client.logger;
     //If this was called from DMs, return and send a message
-    if (!interaction.guild)
+    if (!interaction.guild) {
+      logger.debug("Refused join command from DMs.");
       return interaction.reply(":x:: You can't use this command in DMs!");
-    // If the user does not have the Puppeteer role, return and send a message
-    console.log(
-      interaction.member.permissions.has(
-        PermissionsBitField.Flags.Administrator
-      )
-    );
+    }
     if (
       !interaction.member.roles.cache.some(
         (role) => role.name === "Puppeteer"
@@ -31,22 +28,29 @@ module.exports = {
       !interaction.member.permissions.has(
         PermissionsBitField.Flags.Administrator
       )
-    )
+    ) {
+      logger.debug("Refused join command from non-admin.");
       return interaction.reply(
         ":x:: You need to have the Puppeteer role or be an administrator to use this command!"
       );
+    }
+
     // If the user is not in a voice channel, return and send a message
-    if (!interaction.member.voice.channel)
+    if (!interaction.member.voice.channel) {
+      logger.debug("Refused join command from user not in voice channel.");
       return interaction.reply(":x:: You need to join a voice channel first!");
+    }
+
     // If the bot is already in a voice channel in the same guild, return and send a message
-    if (interaction.guild.members.me.voice.channel)
+    if (interaction.guild.members.me.voice.channel) {
+      logger.debug("Refused join command because bot was already in VC.");
       return interaction.reply(
         ":x:: I'm already in a voice channel! /nIf you want me to leave, type /leave first."
       );
+    }
     // If the bot is not in a voice channel in the same guild, join it and add an event listener to the bot.
 
     channel = interaction.member.voice.channel;
-    console.log(channel.guild.voiceAdapterCreator);
     const connection = joinVoiceChannel({
       channelId: channel.id,
       guildId: channel.guild.id,
@@ -54,8 +58,8 @@ module.exports = {
       selfDeaf: false,
       selfMute: true,
     })
-      .on("debug", console.log)
-      .on("error", console.error);
+      .on("debug", logger.debug)
+      .on("error", logger.error);
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, 2_000);
       interaction.reply(
@@ -67,6 +71,9 @@ module.exports = {
       // If the exception is an abort error, it means the connection failed.
       // No need to log.
       if (exception.code === "ABORT_ERR") {
+        logger.error(
+          `Failed to join voice channel ${interaction.member.voice.channel.name} in guild ${interaction.guild.name} due to abortion`
+        );
         return interaction.reply(
           ":x: There was an error joining that voice channel! I may not have permission to join it, for example!"
         );
@@ -77,7 +84,7 @@ module.exports = {
     }
 
     connection.on(VoiceConnectionStatus.Ready, () => {
-      console.log(
+      logger.info(
         `Successfully loaded voice state in channel ${interaction.member.voice.channel.name}`
       );
     });
@@ -102,7 +109,7 @@ module.exports = {
     connection.on(
       VoiceConnectionStatus.Disconnected,
       async (oldState, newState) => {
-        console.error(
+        logger.error(
           `Unexpectedly disconnected from voice call, beginning reconect race...`
         );
         try {
@@ -113,12 +120,15 @@ module.exports = {
         } catch (error) {
           connection.destroy();
           // TODO this may leave some unknown websockets in the collection.
-          console.error(
+
+          logger.error(
             `Failed to reconnect to voice channel after 5 seconds, destroying connection.`
           );
         }
       }
     );
-    console.log("Joined voice channel.");
+    logger.info(
+      `Joined voice channel ${channel.name} in guild ${channel.guild.name}`
+    );
   },
 };

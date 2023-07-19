@@ -1,11 +1,76 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const https = require("https");
-const http = require("http");
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
-const { DISCORD_BOT_TOKEN, PORT } = require("./config.json");
+const { DISCORD_BOT_TOKEN, PORT, LOG_LEVEL } = require("./config.json");
 const { createWebSocketServer } = require("./websocket/createWebSocket");
-const WebSocket = require("ws");
+const winston = require("winston");
+
+const executionDate = Date.now();
+const executionDateFormatted = new Date(executionDate)
+  .toLocaleString("en-US", {
+    timeZone: "America/New_York",
+  })
+  .replace(/\//g, "-")
+  .replace(/,/g, "")
+  .replace(/:/g, "-");
+console.log(executionDateFormatted);
+
+if (!fs.existsSync(path.join(__dirname, "logs"))) {
+  fs.mkdirSync(path.join(__dirname, "logs"));
+}
+if (!fs.existsSync(path.join(__dirname, "logs", "errors"))) {
+  fs.mkdirSync(path.join(__dirname, "logs", "errors"));
+}
+if (!fs.existsSync(path.join(__dirname, "logs", "combined"))) {
+  fs.mkdirSync(path.join(__dirname, "logs", "combined"));
+}
+if (!fs.existsSync(path.join(__dirname, "logs", "exceptions"))) {
+  fs.mkdirSync(path.join(__dirname, "logs", "exceptions"));
+}
+
+const logger = winston.createLogger({
+  level: LOG_LEVEL,
+  format: winston.format.json(),
+  defaultMeta: { service: "user-service" },
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
+    }),
+    // Have filename based on date and time
+    new winston.transports.File({
+      filename: path.join(
+        __dirname,
+        "logs",
+        `errors`,
+        `${executionDateFormatted} errors.log`
+      ),
+      level: "error",
+    }),
+    new winston.transports.File({
+      filename: path.join(
+        __dirname,
+        "logs",
+        `combined`,
+        `${executionDateFormatted} combined.log`
+      ),
+      level: "error",
+    }),
+  ],
+  exceptionHandlers: [
+    new winston.transports.File({
+      filename: path.join(
+        __dirname,
+        "logs",
+        `errors`,
+        `${executionDateFormatted} errors.log`
+      ),
+      level: "error",
+    }),
+  ],
+});
 
 // Create a new client instance
 const client = new Client({
@@ -15,6 +80,7 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
   ],
 });
+client.logger = logger;
 
 const eventsPath = path.join(__dirname, "events");
 const eventFiles = fs
@@ -39,7 +105,7 @@ for (const file of eventFiles) {
   } else {
     client.on(event.name, (...args) => event.execute(...args));
   }
-  console.log(`Loaded event for ${event.name} from ${filePath}`);
+  logger.info(`Loaded event for ${event.name} from ${filePath}`);
 }
 
 for (const folder of commandFolders) {
@@ -53,12 +119,12 @@ for (const folder of commandFolders) {
     // Set a new item in the Collection with the key as the command name and the value as the exported module
     if ("data" in command && "execute" in command) {
       client.commands.set(command.data.name, command);
+      logger.info(`Loaded command ${command.data.name} from ${filePath}`);
     } else {
-      console.log(
-        `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+      logger.warn(
+        `The command at ${filePath} is missing a required "data" or "execute" property.`
       );
     }
-    console.log(`Loaded command ${command.data.name} from ${filePath}`);
   }
 }
 
@@ -115,7 +181,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error(error);
+    logger.error(`Error executing command ${command.name}: ${error}`);
     await interaction.reply({
       content: "There was an error while executing this command!",
       ephemeral: true,
@@ -123,51 +189,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// //Set up websocket
-// // const options = {
-// //   key: fs.readFileSync("private-key.pem"),
-// //   cert: fs.readFileSync("public-cert.pem"),
-// // };
-// const server = http.createServer();
-// const ws = new WebSocket.WebSocketServer();
-
-// ws.on("error", console.error);
-// ws.on("connection", function connection(socket) {
-//   console.log("New connection to websocket.");
-//   socket.on("message", (data) => {
-//     console.log("Received message from websocket.");
-//     const parsedData = JSON.parse(data);
-//     if (parsedData.type === "ACTOR") {
-//       console.log("Actor specifier received.");
-//       const actorId = parsedData.actorId;
-//       if (discordClient.actorWebSockets.has(actorId)) {
-//         console.log("Actor already has a websocket. Closing old socket.");
-//         const oldWs = discordClient.actorWebSockets.get(actorId);
-//         oldWs.send("CLOSE");
-//         oldWs.close();
-//       }
-//       discordClient.actorWebSockets.set(actorId, socket);
-//       console.log("Actor websocket set.");
-//     }
-//   });
-//   socket.on("close", function close() {
-//     console.log("Closing and cleaning up websocket.");
-//     const actorId = discordClient.actorWebSockets.findKey((websocket) => {
-//       return websocket === socket;
-//     });
-//     if (actorId) {
-//       discordClient.actorWebSockets.delete(actorId);
-//     } else {
-//       console.warn("Couldn't find actorId for websocket.");
-//     }
-//   });
-// });
-// server.listen("8080", () => {
-//   console.log("Websocket server listening on port 8080.");
-// });
 createWebSocketServer(PORT, client);
 
-console.log("Websocket created.");
+logger.info(`Websocket server created and listening on port ${PORT}.`);
 
 // Log in to Discord with your client's token
 client.login(DISCORD_BOT_TOKEN);

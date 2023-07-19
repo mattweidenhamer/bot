@@ -3,9 +3,10 @@ const { Events } = require("discord.js");
 module.exports = {
   name: Events.GuildCreate,
   async execute(guild) {
-    console.log(guild.ownerID);
+    const logger = guild.client.logger;
+    logger.debug("Joined new guild " + guild.name + " (ID: " + guild.id + ")");
     owner = await guild.fetchOwner();
-    console.log(
+    logger.info(
       "Joined new guild " +
         guild.name +
         " (ID: " +
@@ -20,7 +21,7 @@ module.exports = {
     );
 
     if (!guild.roles.cache.some((role) => role.name === "Puppeteer")) {
-      console.log("No Puppeteer role, creating one...");
+      logger.debug("No Puppeteer role, creating one...");
       guild.roles.create({
         name: "Puppeteer",
         color: "Red",
