@@ -64,7 +64,13 @@ const http = require("http");
 // };
 
 const createWebSocketServer = (port, discordClient) => {
-  const server = http.createServer();
+  // Normal unseured version
+  //const server = http.createServer();
+  // Encrypted wss version
+  const server = https.createServer({
+    cert: fs.readFileSync("private-cert.pem"),
+    key: fs.readFileSync("public-key.pem"),
+  });
   const ws = new WebSocket.WebSocketServer({ server });
 
   ws.on("error", console.error);
