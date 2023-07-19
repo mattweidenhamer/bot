@@ -3,7 +3,7 @@ const path = require("node:path");
 const https = require("https");
 const http = require("http");
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
-const { DISCORD_BOT_TOKEN } = require("./config.json");
+const { DISCORD_BOT_TOKEN, PORT } = require("./config.json");
 const { createWebSocketServer } = require("./websocket/createWebSocket");
 const WebSocket = require("ws");
 
@@ -165,7 +165,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 // server.listen("8080", () => {
 //   console.log("Websocket server listening on port 8080.");
 // });
-createWebSocketServer(8080, client);
+createWebSocketServer(PORT, client);
 
 console.log("Websocket created.");
 
