@@ -1,8 +1,7 @@
 const WebSocket = require("ws");
 const fs = require("fs");
 const https = require("https");
-const http = require("http");
-const winston = require("winston");
+const { CERT_FILE, KEY_FILE } = require("../config.json");
 
 // const newConnection = (ws, discordClient) => {
 //   return () => {
@@ -70,8 +69,8 @@ const createWebSocketServer = (port, discordClient) => {
   // Encrypted wss version
   const logger = discordClient.logger;
   const server = https.createServer({
-    cert: fs.readFileSync("public-cert.pem"),
-    key: fs.readFileSync("private-key.pem"),
+    cert: fs.readFileSync(CERT_FILE),
+    key: fs.readFileSync(KEY_FILE),
   });
   const ws = new WebSocket.WebSocketServer({ server });
 
