@@ -56,7 +56,7 @@ const logger = winston.createLogger({
         `combined`,
         `${executionDateFormatted} combined.log`
       ),
-      level: "error",
+      level: "info",
     }),
   ],
   exceptionHandlers: [
