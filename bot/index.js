@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
-const { DISCORD_BOT_TOKEN, PORT, LOG_LEVEL } = require("./config.json");
+const { DISCORD_BOT_TOKEN, PORT, LOG_LEVEL, DEBUG } = require("./config.json");
 const { createWebSocketServer } = require("./websocket/createWebSocket");
 const winston = require("winston");
 
@@ -27,7 +27,6 @@ if (!fs.existsSync(path.join(__dirname, "logs", "combined"))) {
 if (!fs.existsSync(path.join(__dirname, "logs", "exceptions"))) {
   fs.mkdirSync(path.join(__dirname, "logs", "exceptions"));
 }
-
 const logger = winston.createLogger({
   level: LOG_LEVEL,
   format: winston.format.json(),
@@ -56,7 +55,7 @@ const logger = winston.createLogger({
         `combined`,
         `${executionDateFormatted} combined.log`
       ),
-      level: "info",
+      level: LOG_LEVEL,
     }),
   ],
   exceptionHandlers: [

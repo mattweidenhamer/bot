@@ -91,6 +91,7 @@ module.exports = {
     // TODO generate new IDs for each connection, instead of using user snowflakes, since multiple users may configure the same user and have it open at the same time
     connection.receiver.speaking.on("end", (userId) => {
       //TODO this may be beyond the scope of the function by the time it's all done.
+      logger.debug("Received speaking end event. user ID is ${userId}");
       if (interaction.client.actorWebSockets.has(userId)) {
         interaction.client.actorWebSockets
           .get(userId)
@@ -98,6 +99,7 @@ module.exports = {
       }
     });
     connection.receiver.speaking.on("start", (userId) => {
+      logger.debug(`Received speaking start event. user ID is ${userId}`);
       if (interaction.client.actorWebSockets.has(userId)) {
         interaction.client.actorWebSockets
           .get(userId)

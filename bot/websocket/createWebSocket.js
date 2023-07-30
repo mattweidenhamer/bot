@@ -1,7 +1,9 @@
 const WebSocket = require("ws");
 const fs = require("fs");
 const https = require("https");
-const { CERT_FILE, KEY_FILE } = require("../config.json");
+const http = require("http");
+const { CERT_FILE, KEY_FILE, DEBUG } = require("../config.json");
+const { debug } = require("console");
 
 // const newConnection = (ws, discordClient) => {
 //   return () => {
@@ -68,10 +70,15 @@ const createWebSocketServer = (port, discordClient) => {
   //const server = http.createServer();
   // Encrypted wss version
   const logger = discordClient.logger;
-  const server = https.createServer({
-    cert: fs.readFileSync(CERT_FILE),
-    key: fs.readFileSync(KEY_FILE),
-  });
+  let server = null;
+  if (DEBUG) {
+    server = http.createServer();
+  } else {
+    server = https.createServer({
+      cert: fs.readFileSync(CERT_FILE),
+      key: fs.readFileSync(KEY_FILE),
+    });
+  }
   const ws = new WebSocket.WebSocketServer({ server });
 
   ws.on("error", console.error);
