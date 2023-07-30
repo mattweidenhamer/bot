@@ -3,67 +3,6 @@ const fs = require("fs");
 const https = require("https");
 const http = require("http");
 const { CERT_FILE, KEY_FILE, DEBUG } = require("../config.json");
-const { debug } = require("console");
-
-// const newConnection = (ws, discordClient) => {
-//   return () => {
-//     console.log("New connection to websocket.");
-//     //May be extrenuous
-//     discordClient.waitingWebSockets.set(ws, "WAITING");
-//     ws.on("message", (data) => {
-//       console.log("Received message from websocket.");
-//       const parsedData = JSON.parse(data);
-//       if (parsedData.type === "ACTOR") {
-//         console.log("Actor message received.");
-//         const actorId = parsedData.actorId;
-//         if (discordClient.actorWebSockets.has(actorId)) {
-//           console.log("Actor already has a websocket. Closing old socket.");
-//           const oldWs = discordClient.actorWebSockets.get(actorId);
-//           oldWs.send("CLOSE");
-//           oldWs.close();
-//         }
-//         discordClient.actorWebSockets.set(actorId, ws);
-//         discordClient.waitingWebSockets.delete(ws);
-//         console.log("Actor websocket set.");
-//       }
-//     });
-//   };
-// };
-
-// const closeConnection = (ws, discordClient) => {
-//   return () => {
-//     console.log("Closing and cleaning up websocket.");
-//     const actorId = discordClient.actorWebSockets.findKey((websocket) => {
-//       return websocket === ws;
-//     });
-//     if (actorId) {
-//       discordClient.actorWebSockets.delete(actorId);
-//     } else {
-//       console.warn("Couldn't find actorId for websocket.");
-//     }
-//   };
-// };
-
-// const receiveMessage = (ws, discordClient) => {
-//   return (data) => {
-//     console.log("Received message from websocket.");
-//     const parsedData = JSON.parse(data);
-//     console.log(parsedData);
-//     if (parsedData.type === "ACTOR") {
-//       console.log("Actor message received.");
-//       const actorId = parsedData.actorId;
-//       if (discordClient.actorWebSockets.has(actorId)) {
-//         console.log("Actor already has a websocket. Closing old socket.");
-//         const oldWs = discordClient.actorWebSockets.get(actorId);
-//         oldWs.send("CLOSE");
-//         oldWs.close();
-//       }
-//       discordClient.actorWebSockets.set(actorId, ws);
-//       discordClient.waitingWebSockets.delete(ws);
-//       console.log("Actor websocket set.");
-//     }
-//   };
-// };
 
 const createWebSocketServer = (port, discordClient) => {
   // Normal unseured version
@@ -83,35 +22,59 @@ const createWebSocketServer = (port, discordClient) => {
 
   ws.on("error", console.error);
   ws.on("connection", function connection(socket) {
+    // TODO - Add error handling
+    // TODO - If actor is not configured after 5 seconds, close connection
+    // TODO - Close connection if no messages have been sent in the last hour.
     logger.info("New connection to websocket.");
     socket.on("message", (data) => {
       logger.debug("Received message from websocket.");
       const parsedData = JSON.parse(data);
-      if (parsedData.type === "ACTOR") {
+      if (parsedData.type === "ACTOR" && ws.actorId === undefined) {
         logger.debug("Actor specifier received.");
         const actorId = parsedData.actorId;
+        socket.actorId = actorId;
         if (discordClient.actorWebSockets.has(actorId)) {
-          logger.info("Actor already has a websocket. Closing old socket.");
-          const oldWs = discordClient.actorWebSockets.get(actorId);
-          oldWs.send("CLOSE");
-          oldWs.close();
+          logger.debug(`Adding  websockets`);
+          discordClient.actorWebSockets.get(actorId).add(socket);
+        } else {
+          logger.debug(
+            `Actor ${actorId} does not have a collection in websockets, and one will be created.`
+          );
+          discordClient.actorWebSockets.set(actorId, new Set());
+          discordClient.actorWebSockets.get(actorId).add(socket);
         }
-        discordClient.actorWebSockets.set(actorId, socket);
         logger.info(`Websocket for ID ${actorId} set.`);
+      } else {
+        logger.warn(
+          `Received unusual or unprompted data from websocket: ${data}`
+        );
+        logger.warn(`Websocket will be closed as a precaution.`);
+        socket.close();
       }
     });
     socket.on("close", function close() {
-      logger.info("Closing and cleaning up websocket.");
-      const actorId = discordClient.actorWebSockets.findKey((websocket) => {
-        return websocket === socket;
-      });
-      if (actorId) {
-        discordClient.actorWebSockets.delete(actorId);
-        logger.debug(`Websocket Key for ID ${actorId} deleted.`);
+      logger.debug("Closing and cleaning up websocket.");
+      if (!socket.actorId) {
+        logger.info(`A websocket was closed before actorId was configured.`);
+        return;
+      }
+      if (discordClient.actorWebSockets.get(socket.actorId).delete(socket)) {
+        logger.debug(`Websocket for actor ${socket.actorId} deleted.`);
+        if (discordClient.actorWebSockets.get(socket.actorId).size === 0) {
+          logger.debug(
+            `Websocket set for actor ${socket.actorId} is empty. Deleting set.`
+          );
+          discordClient.actorWebSockets.delete(socket.actorId);
+        }
       } else {
-        logger.warn(`Couldn't find actorId to remove websocket.`);
+        logger.warn(
+          `Websocket not found for deletion in the set of websockets for ${socket.actorId}.`
+        );
       }
     });
+    socket.on("error", logger.error);
+    socket.on("ping", logger.debug);
+    socket.on("upgrade", logger.debug);
   });
   server.listen(port);
   logger.info(`Websocket server listening on port ${port}.`);

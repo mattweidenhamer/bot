@@ -88,24 +88,27 @@ module.exports = {
         `Successfully loaded voice state in channel ${interaction.member.voice.channel.name}`
       );
     });
-    // TODO generate new IDs for each connection, instead of using user snowflakes, since multiple users may configure the same user and have it open at the same time
+    // TODO generate new IDs for each connection
     connection.receiver.speaking.on("end", (userId) => {
-      //TODO this may be beyond the scope of the function by the time it's all done.
       logger.debug("Received speaking end event. user ID is ${userId}");
       if (interaction.client.actorWebSockets.has(userId)) {
-        interaction.client.actorWebSockets
-          .get(userId)
-          .send(JSON.stringify({ type: "ACTOR_STATE", data: "NOT_SPEAKING" }));
+        const websockets = interaction.client.actorWebSockets.get(userId);
+        websockets.forEach((websocket) => {
+          websocket.send(
+            JSON.stringify({ type: "ACTOR_STATE", data: "NOT_SPEAKING" })
+          );
+        });
       }
     });
     connection.receiver.speaking.on("start", (userId) => {
       logger.debug(`Received speaking start event. user ID is ${userId}`);
       if (interaction.client.actorWebSockets.has(userId)) {
-        interaction.client.actorWebSockets
-          .get(userId)
-          .send(
+        const websockets = interaction.client.actorWebSockets.get(userId);
+        websockets.forEach((websocket) => {
+          websocket.send(
             JSON.stringify({ type: "ACTOR_STATE", data: "START_SPEAKING" })
           );
+        });
       }
     });
     connection.on(

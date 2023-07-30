@@ -63,8 +63,8 @@ const logger = winston.createLogger({
       filename: path.join(
         __dirname,
         "logs",
-        `errors`,
-        `${executionDateFormatted} errors.log`
+        `exceptions`,
+        `${executionDateFormatted} exceptions.log`
       ),
       level: "error",
     }),
@@ -93,6 +93,8 @@ const commandFolders = fs.readdirSync(foldersPath);
 
 client.cooldowns = new Collection();
 // Dictionary: Add the tracked user ID as the key and the websocket as the value
+// Note: Actor Web Sockets currently has a dictionary of all user IDs that it broadcasts to.
+// Start adding new lists as dictionaries and broadcasting to all of them.
 client.actorWebSockets = new Collection();
 client.waitingWebSockets = new Collection();
 
@@ -127,18 +129,24 @@ for (const folder of commandFolders) {
   }
 }
 
+// BUG Currently, the bot sends these messages even if it's not in voice with the specified user, so long as they share a server.
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
   if (client.actorWebSockets.has(newState.id)) {
     if (oldState.channelId !== newState.channelId) {
-      const webSocket = client.actorWebSockets.get(newState.id);
       if (newState.channelId) {
-        webSocket.send(
-          JSON.stringify({ type: "ACTOR_STATE", data: "CONNECTION" })
-        );
+        const websockets = client.actorWebSockets.get(newState.id);
+        for (const websocket of websockets) {
+          websocket.send(
+            JSON.stringify({ type: "ACTOR_STATE", data: "CONNECTION" })
+          );
+        }
       } else {
-        webSocket.send(
-          JSON.stringify({ type: "ACTOR_STATE", data: "DISCONNECTION" })
-        );
+        const websockets = client.actorWebSockets.get(newState.id);
+        for (const websocket of websockets) {
+          websocket.send(
+            JSON.stringify({ type: "ACTOR_STATE", data: "DISCONNECTION" })
+          );
+        }
       }
     }
   }
